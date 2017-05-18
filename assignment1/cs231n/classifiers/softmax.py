@@ -30,7 +30,29 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  # compute the loss and the gradient
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
+  loss = 0.0
+  for i in xrange(num_train):
+    X_i =  X[i,:]
+    score_i = X_i.dot(W)
+    stability = -score_i.max()
+    exp_score_i = np.exp(score_i+stability)
+    exp_score_total_i = np.sum(exp_score_i)
+    for j in xrange(num_classes):
+      if j == y[i]:
+        dW[:,j] += -X_i.T + (exp_score_i[j] / exp_score_total_i) * X_i.T
+      else:
+        dW[:,j] += (exp_score_i[j] / exp_score_total_i) * X_i.T
+    numerator = np.exp(score_i[y[i]]+stability)
+    denom = np.sum(np.exp(score_i+stability),axis = 0)
+    loss += -np.log(numerator / float(denom))
+
+
+  loss = loss / float(num_train) + 0.5 * reg * np.sum(W*W)
+  dW = dW / float(num_train) + reg * W
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -47,6 +69,8 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
 
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
@@ -54,7 +78,17 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  scores = X.dot(W)
+  scores+= -np.tile(np.max(scores, axis = 1),(num_classes,1)).T
+  exp_scores = np.exp(scores)
+  sum_scores = np.sum(exp_scores , axis = 1)
+  
+  loss = np.log(sum_scores)-np.log(exp_scores[np.arange(num_train),y])
+  loss = np.sum(loss) / float(num_train) + 0.5 * reg * np.sum(W*W)
+
+  Grad = exp_scores / np.tile(sum_scores,(num_classes,1)).T
+  Grad[np.arange(num_train),y] += -1.0
+  dW = X.T.dot(Grad) / float(num_train) + reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
